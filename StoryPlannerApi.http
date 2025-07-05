@@ -1,0 +1,6 @@
+@StoryPlannerApi_HostAddress = http://localhost:5221
+
+GET {{StoryPlannerApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
