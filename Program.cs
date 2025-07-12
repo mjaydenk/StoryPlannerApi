@@ -59,6 +59,12 @@ app.MapGet("/tags", async (AppDbContext db) =>
     return tags;
 });
 
+app.MapGet("/stories", async (AppDbContext db) =>
+{
+    var stories = await db.Stories.ToListAsync();
+    return stories;
+});
+
 app.Run();
 
 internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
