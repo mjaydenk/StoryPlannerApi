@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StoryPlannerApi;
+using StoryPlannerApi.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,11 +54,7 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-app.MapGet("/tags", async (AppDbContext db) =>
-{
-    var tags = await db.Tags.ToListAsync();
-    return tags;
-});
+TagEndpoints.Map(app);
 
 app.MapGet("/stories", async (AppDbContext db) =>
 {
