@@ -4,6 +4,18 @@ using StoryPlannerApi.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Note: This is not very secure...
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+         builder =>
+         {
+             builder.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+         });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 
 // Add services to the container.
@@ -32,6 +44,19 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseCors("AllowAll");
+
+app.UseExceptionHandler(appError =>
+{
+    appError.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var errorResponse = new { Message = "An unexpected error occurred." };
+        await context.Response.WriteAsJsonAsync(errorResponse);
+    });
+});
 
 app.UseHttpsRedirection();
 

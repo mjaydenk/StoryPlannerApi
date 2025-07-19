@@ -17,54 +17,66 @@ public static class TagEndpoints
         app.MapPost("/tags", CreateTag)
             .WithName("CreateTag")
             .Accepts<Tag>("application/json")
-            .Produces<Tag>(StatusCodes.Status201Created)
+            .Produces<Tag>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest);
 
         app.MapPut("/tags/{id:int}", UpdateTag)
             .WithName("UpdateTag")
             .Accepts<Tag>("application/json")
             .Produces<Tag>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status400BadRequest);
     }
 
-    public static async Task<ActionResult<List<Tag>>> GetTags(AppDbContext context)
+    public static async Task<IResult> GetTags(AppDbContext context)
     {
         var results = await context.Tags.ToListAsync();
 
-        return results;
+        return Results.Ok(results);
     }
 
-    public static async Task<ActionResult<Tag>> GetTagById([FromRoute] int id, AppDbContext context)
+    public static async Task<IResult> GetTagById([FromRoute] int id, AppDbContext context)
     {
         var tag = await context.Tags.FindAsync(id);
         if (tag == null)
         {
-            return new NotFoundResult();
+            return Results.NotFound(new { Message = $"Tag with ID {id} not found." });
         }
-        return tag;
+        return Results.Ok(tag);
     }
 
-    public static async Task<ActionResult<Tag>> CreateTag([FromBody] Tag tag, AppDbContext context)
+    public static async Task<IResult> CreateTag([FromBody] TagCommand tagCommand, AppDbContext context)
     {
+        var tag = tagCommand.MapFrom();
+        if (string.IsNullOrWhiteSpace(tag.Name))
+        {
+            return Results.BadRequest("Tag name cannot be empty.");
+        }
         context.Tags.Add(tag);
         await context.SaveChangesAsync();
-        return new CreatedAtActionResult("GetTagById", "TagEndpoints", new { id = tag.Id }, tag);
+        return Results.Ok<Tag>(tag);
     }
 
-    public static async Task<ActionResult<Tag>> UpdateTag([FromRoute] int id, [FromBody] Tag tag, AppDbContext context)
+    public static async Task<IResult> UpdateTag([FromRoute] int id, [FromBody] TagCommand tagCommand, AppDbContext context, CancellationToken cancellationToken)
     {
-        if (id != tag.Id)
+        var tag = await context.Tags.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+        if (tag == null)
         {
-            return new BadRequestResult();
+            return Results.BadRequest(new { Message = $"Tag with ID {id} not found." });
         }
-        context.Entry(tag).State = EntityState.Modified;
-        await context.SaveChangesAsync();
-        return new OkObjectResult(tag);
+        tag.Name = tagCommand.Name;
+        await context.SaveChangesAsync(cancellationToken);
+        return Results.Ok(tag);
     }
 }
 
 public class TagCommand
 {
     public string Name { get; set; } = string.Empty;
+    public Tag MapFrom()
+    {
+        return new Tag
+        {
+            Name = Name
+        };
+    }
 }
